@@ -1,1 +1,4 @@
-flask
+Flask==2.3.3
+boto3==1.28.0
+pymysql==1.1.0
+
