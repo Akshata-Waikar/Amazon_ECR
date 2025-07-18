@@ -5,7 +5,8 @@ pipeline {
         AWS_REGION = 'ap-northeast-2'
         ECR_REPO = '265980493709.dkr.ecr.ap-northeast-2.amazonaws.com/flask-app'
         IMAGE_TAG = 'latest'
-        LIVE_SERVER = 'ec2-user@15.164.232.143'  // Replace with your EC2 public IP
+        SSH_PRIVATE_KEY = credentials('live-server-key')  // Jenkins credential ID
+        LIVE_SERVER_IP = 'YOUR.LIVE.EC2.IP' // <== CHANGE THIS
     }
 
     stages {
@@ -17,57 +18,35 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    sh 'docker build -t flask-app .'
-                }
+                sh 'docker build -t flask-app .'
             }
         }
 
         stage('Login to ECR') {
             steps {
-                script {
-                    sh 'aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO'
-                }
+                sh "aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO"
             }
         }
 
-        stage('Tag & Push to ECR') {
+        stage('Tag & Push Image') {
             steps {
-                script {
-                    sh '''
-                        docker tag flask-app:latest $ECR_REPO:$IMAGE_TAG
-                        docker push $ECR_REPO:$IMAGE_TAG
-                    '''
-                }
+                sh '''
+                    docker tag flask-app:latest $ECR_REPO:$IMAGE_TAG
+                    docker push $ECR_REPO:$IMAGE_TAG
+                '''
             }
         }
 
         stage('Deploy to Live Server') {
             steps {
-                withCredentials([sshUserPrivateKey(credentialsId: 'live-server-key', keyFileVariable: 'SSH_KEY')]) {
-                    sh '''
-                        ssh -i $SSH_KEY -o StrictHostKeyChecking=no $LIVE_SERVER '
-                            docker pull $ECR_REPO:$IMAGE_TAG &&
-                            docker stop flask-container || true &&
-                            docker rm flask-container || true &&
-                            docker run -d --name flask-container -p 80:5000 $ECR_REPO:$IMAGE_TAG
-                        '
-                    '''
-                }
-            }
-        }
-
-        stage('Trigger Lambda') {
-            steps {
-                script {
-                    sh '''
-                        aws lambda invoke \
-                        --function-name my-deploy-notifier \
-                        --region $AWS_REGION \
-                        --payload '{}' \
-                        response.json
-                    '''
-                }
+                sh '''
+                ssh -o StrictHostKeyChecking=no -i $SSH_PRIVATE_KEY ec2-user@$LIVE_SERVER_IP << EOF
+                docker pull $ECR_REPO:$IMAGE_TAG
+                docker stop flask-container || true
+                docker rm flask-container || true
+                docker run -d --name flask-container -p 80:5000 $ECR_REPO:$IMAGE_TAG
+                EOF
+                '''
             }
         }
     }
