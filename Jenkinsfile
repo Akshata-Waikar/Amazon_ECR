@@ -12,7 +12,7 @@ pipeline {
     stages {
         stage('Clone Repo') {
             steps {
-                git 'https://github.com/Akshata-Waikar/Python_through_jenkins.git'  // Use your actual repo
+                git 'https://github.com/Akshata-Waikar/Amazon_ECR'  // Use your actual repo
             }
         }
 
