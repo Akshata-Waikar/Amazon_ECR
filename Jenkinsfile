@@ -2,16 +2,16 @@ pipeline {
     agent any
 
     environment {
-        AWS_ACCOUNT_ID = 'your_account_id'
+        AWS_ACCOUNT_ID = '265980493709'
         AWS_REGION = 'ap-northeast-2'
         IMAGE_NAME = 'flask-app-repo'
         REPO_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${IMAGE_NAME}"
     }
 
     stages {
-        stage('Clone Repository') {
+        stage('Clone Repo') {
             steps {
-                git 'https://github.com/yourusername/your-flask-repo.git'
+                git 'https://github.com/Akshata-Waikar/flask-app.git'
             }
         }
 
@@ -23,21 +23,21 @@ pipeline {
             }
         }
 
-        stage('Login to Amazon ECR') {
+        stage('Login to ECR') {
             steps {
                 script {
                     sh """
-                    aws ecr get-login-password --region $AWS_REGION | \
-                    docker login --username AWS --password-stdin $REPO_URI
+                    aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REPO_URI
                     """
                 }
             }
         }
 
-        stage('Tag & Push Image') {
+        stage('Tag & Push to ECR') {
             steps {
                 script {
-                    docker.image("${IMAGE_NAME}").tag("latest")
+                    def image = docker.image("${IMAGE_NAME}")
+                    image.tag("latest")
                     sh "docker tag ${IMAGE_NAME}:latest $REPO_URI:latest"
                     sh "docker push $REPO_URI:latest"
                 }
