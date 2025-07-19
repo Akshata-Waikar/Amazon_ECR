@@ -3,9 +3,10 @@ pipeline {
 
     environment {
         AWS_REGION = 'ap-northeast-2'
-        ECR_REPO = '265980493709.dkr.ecr.ap-northeast-2.amazonaws.com/flask-app'
+        APP_NAME = 'flask-app'
+        ECR_REPO = "265980493709.dkr.ecr.ap-northeast-2.amazonaws.com/${APP_NAME}"
         IMAGE_TAG = 'latest'
-        LIVE_SERVER_IP = '3.38.100.12'  // Replace with your EC2 public IP
+        LIVE_SERVER_IP = '3.38.100.12'  // Replace with EC2 public IP
     }
 
     stages {
@@ -17,7 +18,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t flask-app ./flask_app'
+                sh "docker build -t ${APP_NAME} ./flask_app"
             }
         }
 
@@ -31,7 +32,6 @@ pipeline {
                         aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
                         aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
                         aws configure set default.region $AWS_REGION
-
                         aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO
                     '''
                 }
@@ -52,7 +52,7 @@ pipeline {
                 withCredentials([sshUserPrivateKey(credentialsId: 'live-server-key', keyFileVariable: 'SSH_KEY')]) {
                     sh '''
                         ssh -o StrictHostKeyChecking=no -i $SSH_KEY ec2-user@$LIVE_SERVER_IP << EOF
-                            aws ecr get-login-password --region ap-northeast-2 | docker login --username AWS --password-stdin $ECR_REPO
+                            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO
                             docker pull $ECR_REPO:$IMAGE_TAG
                             docker stop flask-container || true
                             docker rm flask-container || true
