@@ -6,7 +6,7 @@ pipeline {
         APP_NAME = 'flask-app'
         ECR_REPO = "265980493709.dkr.ecr.ap-northeast-2.amazonaws.com/${APP_NAME}"
         IMAGE_TAG = 'latest'
-        LIVE_SERVER_IP = '3.38.100.12'  // Replace with EC2 public IP
+        LIVE_SERVER_IP = '43.200.180.166'  // Replace with EC2 public IP
     }
 
     stages {
