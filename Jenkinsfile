@@ -19,8 +19,8 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    if (fileExists('flask_app/Dockerfile')) {
-                        sh "docker build -t ${APP_NAME} ./flask_app"
+                    if (fileExists('flask-app/Dockerfile')) {
+                        sh "docker build -t ${APP_NAME} ./flask-app"
                     } else {
                         echo "⚠️ 'flask_app' directory not found, building from root directory"
                         sh "docker build -t ${APP_NAME} ."
