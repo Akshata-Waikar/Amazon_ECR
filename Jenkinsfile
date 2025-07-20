@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -19,7 +18,16 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${APP_NAME} ./flask_app"
+                script {
+                    // Check if flask_app directory exists
+                    if (fileExists('flask_app/Dockerfile')) {
+                        sh "docker build -t ${APP_NAME} ./flask_app"
+                    } else {
+                        // Fallback to current directory if flask_app doesn't exist
+                        echo "⚠️ 'flask_app' directory not found, building from root directory"
+                        sh "docker build -t ${APP_NAME} ."
+                    }
+                }
             }
         }
 
