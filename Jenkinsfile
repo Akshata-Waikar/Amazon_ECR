@@ -2,10 +2,10 @@ pipeline {
     agent any
 
     environment {
-        AWS_REGION    = 'ap-northeast-2'
-        APP_NAME      = 'flask-app'
-        ECR_REPO      = "265980493709.dkr.ecr.ap-northeast-2.amazonaws.com/${APP_NAME}"
-        IMAGE_TAG     = 'latest'
+        AWS_REGION     = 'ap-northeast-2'
+        APP_NAME       = 'flask-app'
+        ECR_REPO       = "265980493709.dkr.ecr.ap-northeast-2.amazonaws.com/${APP_NAME}"
+        IMAGE_TAG      = 'latest'
         LIVE_SERVER_IP = '43.200.180.166'  // Replace this with your EC2 public IP
     }
 
@@ -58,28 +58,28 @@ pipeline {
         stage('Deploy to Live Server') {
             steps {
                 withCredentials([sshUserPrivateKey(credentialsId: 'live-server-key', keyFileVariable: 'SSH_KEY')]) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no -i $SSH_KEY ec2-user@$LIVE_SERVER_IP << 'ENDSSH'
-                            echo "🤖 Welcome to your EC2 Deployment Bot."
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no -i $SSH_KEY ec2-user@$LIVE_SERVER_IP '
+                            echo "🤖 Connected to EC2."
 
-                            export AWS_REGION="${AWS_REGION}"
-                            export ECR_REPO="${ECR_REPO}"
-                            export IMAGE_TAG="${IMAGE_TAG}"
+                            AWS_REGION="ap-northeast-2"
+                            ECR_REPO="265980493709.dkr.ecr.ap-northeast-2.amazonaws.com/flask-app"
+                            IMAGE_TAG="latest"
 
                             echo "🔐 Logging into ECR..."
-                            aws ecr get-login-password --region \$AWS_REGION | docker login --username AWS --password-stdin \$ECR_REPO
+                            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO
 
-                            echo "📥 Pulling the Docker image..."
-                            docker pull \$ECR_REPO:\$IMAGE_TAG
+                            echo "📥 Pulling image..."
+                            docker pull $ECR_REPO:$IMAGE_TAG
 
-                            echo "🧼 Cleaning up old container (if any)..."
+                            echo "🧼 Cleaning old container..."
                             docker stop flask-container || true
                             docker rm flask-container || true
 
-                            echo "🚀 Running the container..."
-                            docker run -d --name flask-container -p 80:5000 \$ECR_REPO:\$IMAGE_TAG
-                        ENDSSH
-                    """
+                            echo "🚀 Starting new container..."
+                            docker run -d --name flask-container -p 80:5000 $ECR_REPO:$IMAGE_TAG
+                        '
+                    '''
                 }
             }
         }
